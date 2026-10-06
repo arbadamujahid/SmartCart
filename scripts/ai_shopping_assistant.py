@@ -63,7 +63,8 @@ def parse_query(query):
         if category in query:
             filters["category"] = category.rstrip("s")
             break
-            # Brand
+
+    # Brand
     brands = [
         "hp",
         "dell",
@@ -112,6 +113,7 @@ def filter_products(df, filters):
             .str.lower()
             .str.contains(filters["category"], na=False)
         ]
+
     # Brand filter
     if filters["brand"] is not None:
         result = result[
@@ -119,7 +121,8 @@ def filter_products(df, filters):
             .astype(str)
             .str.lower()
             .eq(filters["brand"].lower())
-    ]
+        ]
+
     # RAM / feature filter
     if filters["ram"] is not None:
         ram_value = filters["ram"]
@@ -135,11 +138,7 @@ def filter_products(df, filters):
             )
         ]
 
-    return result    
-    """Filter products according to user requirements."""
-
-    result = df.copy()
-
+    return result
 
 
 def shopping_assistant(query, file_path):

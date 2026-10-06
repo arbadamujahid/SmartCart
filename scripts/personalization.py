@@ -48,10 +48,6 @@ def get_preferences():
     """Return the user's current preferences."""
     return load_profile()
 
-def get_preferences():
-    """Return the user's current preferences."""
-    return load_profile()
-
 
 def personalize_results(results):
     """Rank products based on user's preferences."""

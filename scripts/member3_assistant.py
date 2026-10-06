@@ -32,7 +32,7 @@ def run_member3_assistant(query, file_path):
 
 if __name__ == "__main__":
 
-    file_path = "data/cleaned/amazon_laptops_cleaned.csv"
+    file_path = "data/processed/master_products.csv"
 
     query = input(
         "What product are you looking for? "
