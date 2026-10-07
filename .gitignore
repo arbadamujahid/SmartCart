@@ -14,9 +14,14 @@ env/
 data/raw/
 data/cleaned/
 data/processed/
+data/cleaned_datasets/
 
 # Generated outputs
 outputs/
+
+# Member 3 generated user data
+user_history.json
+user_profile.json
 
 # OS files
 .DS_Store
