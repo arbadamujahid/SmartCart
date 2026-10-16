@@ -1,3 +1,4 @@
+
 import pandas as pd
 import re
 
@@ -9,7 +10,6 @@ def load_products(file_path):
 
 def parse_query(query):
     """Convert a natural-language shopping query into filters."""
-
     query = query.lower()
 
     filters = {
@@ -22,10 +22,9 @@ def parse_query(query):
 
     # Price / budget
     price_match = re.search(
-        r"(?:under|below|less than|upto|up to|within)\s*₹?\s*([\d,]+)",
+        r"\b(?:under|below|less than|upto|up to|within)\s*₹?\s*([\d,]+)",
         query
     )
-
     if price_match:
         filters["max_price"] = float(
             price_match.group(1).replace(",", "")
@@ -33,53 +32,43 @@ def parse_query(query):
 
     # Rating
     rating_match = re.search(
-        r"(?:rating|rated)\s*(?:of|above|over|at least)?\s*(\d+(?:\.\d+)?)",
+        r"\b(?:rating|rated)\s*(?:of|above|over|at least)?\s*(\d+(?:\.\d+)?)",
         query
     )
-
     if rating_match:
         filters["min_rating"] = float(rating_match.group(1))
 
     # RAM
-    ram_match = re.search(r"(\d+)\s*gb\s*ram", query)
-
+    ram_match = re.search(r"\b(\d+)\s*gb\s*ram\b", query)
     if ram_match:
         filters["ram"] = ram_match.group(1)
 
     # Category
     categories = [
-        "laptop",
-        "laptops",
-        "mobile",
-        "mobiles",
-        "phone",
-        "phones",
-        "shoes",
-        "fashion",
-        "beauty"
+        "laptops", "laptop",
+        "mobiles", "mobile",
+        "phones", "phone",
+        "shoes", "fashion", "beauty"
     ]
 
     for category in categories:
-        if category in query:
-            filters["category"] = category.rstrip("s")
+        if re.search(r"\b" + re.escape(category) + r"\b", query):
+            if category in ("laptops", "laptop"):
+                filters["category"] = "laptop"
+            elif category in ("mobiles", "mobile", "phones", "phone"):
+                filters["category"] = "mobile"
+            else:
+                filters["category"] = category
             break
 
     # Brand
     brands = [
-        "hp",
-        "dell",
-        "lenovo",
-        "asus",
-        "acer",
-        "apple",
-        "samsung",
-        "oneplus",
-        "nike",
-        "adidas"
+        "oneplus", "samsung", "lenovo", "adidas",
+        "apple", "asus", "acer", "dell", "nike", "hp"
     ]
 
     for brand in brands:
-        if brand in query:
+        if re.search(r"\b" + re.escape(brand) + r"\b", query):
             filters["brand"] = brand
             break
 
@@ -88,96 +77,110 @@ def parse_query(query):
 
 def filter_products(df, filters):
     """Filter products according to user requirements."""
-
     result = df.copy()
 
-    # Price filter
-    if filters["max_price"] is not None:
-        result = result[
-            pd.to_numeric(result["price"], errors="coerce")
-            <= filters["max_price"]
-        ]
+    if filters["max_price"] is not None and "price" in result.columns:
+        prices = pd.to_numeric(result["price"], errors="coerce")
+        result = result[prices <= filters["max_price"]]
 
-    # Rating filter
-    if filters["min_rating"] is not None:
-        result = result[
-            pd.to_numeric(result["rating"], errors="coerce")
-            >= filters["min_rating"]
-        ]
+    if filters["min_rating"] is not None and "rating" in result.columns:
+        ratings = pd.to_numeric(result["rating"], errors="coerce")
+        result = result[ratings >= filters["min_rating"]]
 
-    # Category filter
-    if filters["category"] is not None:
-        result = result[
-            result["category"]
-            .astype(str)
-            .str.lower()
-            .str.contains(filters["category"], na=False)
-        ]
-
-    # Brand filter
-    if filters["brand"] is not None:
-        result = result[
-            result["brand"]
-            .astype(str)
-            .str.lower()
-            .eq(filters["brand"].lower())
-        ]
-
-    # RAM / feature filter
-    if filters["ram"] is not None:
-        ram_value = filters["ram"]
+    if filters["category"] is not None and "category" in result.columns:
+        category = filters["category"]
+        category_pattern = {
+            "laptop": r"\blaptops?\b",
+            "mobile": r"\b(?:mobiles?|phones?)\b",
+            "shoes": r"\bshoes?\b",
+            "fashion": r"\bfashion\b",
+            "beauty": r"\bbeauty\b"
+        }.get(category, re.escape(category))
 
         result = result[
-            result["features"]
-            .astype(str)
-            .str.lower()
-            .str.contains(
-                rf"(?<!\d){ram_value}\s*gb\s*(?:ram|ddr\d)",
-                regex=True,
-                na=False
+            result["category"].astype(str).str.lower().str.contains(
+                category_pattern, regex=True, na=False
             )
         ]
+
+    if filters["brand"] is not None and "brand" in result.columns:
+        result = result[
+            result["brand"].astype(str).str.lower().str.strip()
+            == filters["brand"]
+        ]
+
+    if filters["ram"] is not None:
+        searchable_columns = [
+            column for column in ["features", "product_name", "description"]
+            if column in result.columns
+        ]
+
+        if searchable_columns:
+            text = result[searchable_columns].fillna("").astype(str).agg(
+                " ".join, axis=1
+            )
+
+            ram_pattern = (
+                rf"(?<!\d){re.escape(filters['ram'])}\s*gb\s*(?:ram|ddr\d)"
+            )
+
+            result = result[
+                text.str.contains(ram_pattern, case=False, regex=True, na=False)
+            ]
 
     return result
 
 
 def shopping_assistant(query, file_path):
-    """Process a natural-language shopping query."""
-
+    """Find products matching the shopping query."""
     df = load_products(file_path)
-
     filters = parse_query(query)
-
     results = filter_products(df, filters)
 
     if results.empty:
-        return "No products found matching your requirements."
+        return pd.DataFrame(
+            columns=[
+                "product_name", "brand", "category", "price",
+                "rating", "platform", "image_url", "product_url"
+            ]
+        )
 
-    return results[
-        [
-            "product_name",
-            "brand",
-            "category",
-            "price",
-            "rating",
-            "platform",
-            "product_url"
-        ]
-    ].head(10)
+    # Prioritize products with image URLs.
+    if "image_url" in results.columns:
+        results = results.copy()
+        image_urls = results["image_url"].fillna("").astype(str).str.strip()
+
+        valid_urls = image_urls.str.match(r"^https?://", case=False)
+        results = pd.concat(
+            [results[valid_urls], results[~valid_urls]],
+            ignore_index=True
+        )
+
+    display_columns = [
+        "product_name",
+        "brand",
+        "category",
+        "price",
+        "rating",
+        "platform",
+        "image_url",
+        "product_url"
+    ]
+
+    available_columns = [
+        column for column in display_columns
+        if column in results.columns
+    ]
+
+    return results[available_columns].head(10)
 
 
 if __name__ == "__main__":
+    file_path = "data/processed/master_products.csv"
+    user_query = input("What product are you looking for? ")
 
-    file_path = "data/cleaned/amazon_laptops_cleaned.csv"
-
-    user_query = input(
-        "What product are you looking for? "
-    )
-
-    results = shopping_assistant(
-        user_query,
-        file_path
-    )
+    results = shopping_assistant(user_query, file_path)
 
     print("\nRecommended Products:\n")
-    print(results)
+    print(results.to_string(index=False))
+
