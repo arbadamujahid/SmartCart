@@ -16,7 +16,8 @@ from scripts.ai_shopping_assistant import shopping_assistant
 st.set_page_config(
     page_title="SmartCart",
     page_icon="🛒",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 ROOT = Path(__file__).resolve().parent
@@ -34,27 +35,11 @@ CATEGORY_ICONS = {
     "Shoes": "👟"
 }
 CATEGORY_IMAGES = {
-    # Each category has its own distinct image URL.
-    "Fashion": (
-        "https://images.unsplash.com/photo-1445205170230-053b83016050"
-        "?auto=format&fit=crop&w=900&q=85&v=smartcart-fashion-3"
-    ),
-    "Beauty": (
-        "https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd"
-        "?auto=format&fit=crop&w=900&q=85&v=smartcart-beauty-3"
-    ),
-    "Mobiles": (
-        "https://images.unsplash.com/photo-1598327105666-5b89351aff97"
-        "?auto=format&fit=crop&w=900&q=85&v=smartcart-mobiles-3"
-    ),
-    "Laptops": (
-        "https://images.unsplash.com/photo-1496181133206-80ce9b88a853"
-        "?auto=format&fit=crop&w=900&q=85&v=smartcart-laptops-3"
-    ),
-    "Shoes": (
-        "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519"
-        "?auto=format&fit=crop&w=900&q=85&v=smartcart-shoes-3"
-    ),
+    "Fashion": "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=90",
+    "Beauty": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=1200&q=90",
+    "Mobiles": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1200&q=90",
+    "Laptops": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=1200&q=90",
+    "Shoes": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1200&q=90",
 }
 
 # Separate images for the three home-page discovery cards, so they do not
@@ -88,9 +73,16 @@ PLATFORM_COLORS = {
     "Myntra": "#F7F1E8",
     "Nykaa": "#E5D4BF"
 }
+PLATFORM_IMAGES = {
+    # Exact image links supplied by the user, in the order they identified them.
+    "Amazon": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT9X2zD4qHOAhe0Yh7QYBHY5relSIx0AoH3Z8upkD0IGg&s=10",
+    "Flipkart": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTS6FIH5T38IhsPtLhFa2XklJCKaJh0mMH67XoVUoG67w&s=10",
+    "Myntra": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQOxHzKiNan1OpfFmezt4TsNnygsutpSDbTrtSQvWx8_g&s=10",
+    "Nykaa": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSWkl3IJ0zrV3LzFQyNhhKm_32hbRUqzgbYKYs5whiuFg&s=10",
+}
 SUBCATEGORIES = {
     "Fashion": [
-        "All", "Shirts", "T-Shirts", "Tops", "Jeans",
+        "All", "Shirts", "T-Shirts", "Tops", "Shorts", "Jeans",
         "Trousers", "Dresses", "Jackets", "Kurtas",
         "Watches", "Bags"
     ],
@@ -116,6 +108,7 @@ SUBCATEGORY_TERMS = {
     "Shirts": ["shirt"],
     "T-Shirts": ["t-shirt", "t shirt", "tee"],
     "Tops": ["top"],
+    "Shorts": ["shorts", "short"],
     "Jeans": ["jeans", "denim"],
     "Trousers": ["trousers", "pants"],
     "Dresses": ["dress", "gown"],
@@ -192,12 +185,8 @@ for key, value in defaults.items():
         st.session_state[key] = value
 
 # -------------------- CUSTOM DESIGN --------------------
-hide_sidebar = st.session_state.page == "results"
-sidebar_css = """
-[data-testid="stSidebar"] {
-    display: none !important;
-}
-""" if hide_sidebar else ""
+hide_sidebar = False
+sidebar_css = ""
 st.markdown(f"""
 <style>
 .stApp {{
@@ -330,15 +319,98 @@ div.stButton > button[kind="primary"]:hover {{
     color: #F7F1E8;
     background: #9B7AB5;
 }}
-div[data-testid="stPopover"] {{
-    position: fixed;
-    right: 24px;
-    bottom: 24px;
-    z-index: 9999;
+/* SmartCart AI: compact sidebar button + softly tinted popover */
+[data-testid="stSidebar"] [data-testid="stPopover"] {{
+    width: 100% !important;
+    margin: 2px 0 0 0 !important;
+}}
+/* Streamlit may wrap the popover trigger in an extra div, so target descendants. */
+[data-testid="stSidebar"] [data-testid="stPopover"] button {{
+    width: 100% !important;
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding: 0.62rem 0.85rem !important;
+    border: 1px solid #80639A !important;
+    border-radius: 10px !important;
+    background: #80639A !important;
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 7px rgba(101, 67, 47, 0.10) !important;
+    transition: background 160ms ease, box-shadow 160ms ease, transform 160ms ease !important;
+}}
+[data-testid="stSidebar"] [data-testid="stPopover"] button:hover {{
+    background: #6F527F !important;
+    border-color: #6F527F !important;
+    box-shadow: 0 4px 10px rgba(101, 67, 47, 0.15) !important;
+    color: #FFFFFF !important;
+    transform: translateY(-1px) !important;
+}}
+[data-testid="stSidebar"] [data-testid="stPopover"] button:focus-visible {{
+    outline: 2px solid #9B7AB5 !important;
+    outline-offset: 2px !important;
+}}
+/* Streamlit can render the popover panel outside the sidebar DOM. */
+[data-testid="stPopoverBody"] {{
+    background: #F5EFF9 !important;
+    border: 1px solid #D7C4E3 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 12px 30px rgba(55, 35, 24, 0.17) !important;
+    padding: 0.9rem !important;
+}}
+[data-testid="stPopoverBody"] h3 {{
+    color: #65432F !important;
+    letter-spacing: -0.25px !important;
+}}
+[data-testid="stPopoverBody"] [data-testid="stCaptionContainer"] {{
+    color: #806958 !important;
+}}
+[data-testid="stPopoverBody"] [data-testid="stTextInput"] input {{
+    border: 1px solid #D7C4E3 !important;
+    border-radius: 10px !important;
+    background: #FFFFFF !important;
+    color: #65432F !important;
+}}
+[data-testid="stPopoverBody"] [data-testid="stTextInput"] input:focus {{
+    border-color: #80639A !important;
+    box-shadow: 0 0 0 2px rgba(128, 99, 154, 0.14) !important;
+}}
+[data-testid="stPopoverBody"] [data-testid="stFormSubmitButton"] button {{
+    width: 100% !important;
+    min-height: 41px !important;
+    border: none !important;
+    border-radius: 10px !important;
+    background: #65432F !important;
+    color: #FFF9F2 !important;
+    font-weight: 650 !important;
+}}
+[data-testid="stPopoverBody"] [data-testid="stFormSubmitButton"] button:hover {{
+    background: #80639A !important;
+    color: #FFFFFF !important;
 }}
 div[data-testid="stImage"] img {{
     border-radius: 12px;
 }}
+/* Image-containing cards use a soft white surface against the cream page. */
+div[data-testid="stVerticalBlockBorderWrapper"]:has([data-testid="stImage"]) {{
+    background: #FFFFFF !important;
+    border-color: #EDE4DA !important;
+    border-radius: 18px !important;
+    box-shadow: 0 3px 12px rgba(101, 67, 47, 0.045) !important;
+}}
+
+div[data-testid="stImage"] {{
+    overflow: hidden !important;
+    border-radius: 13px !important;
+}}
+
+div[data-testid="stImage"] img {{
+    display: block !important;
+    object-fit: contain !important;
+    border-radius: 13px !important;
+}}
+
 div[data-testid="stVerticalBlockBorderWrapper"] img {{
     object-fit: contain;
 }}
@@ -351,6 +423,80 @@ div[data-testid="stVerticalBlockBorderWrapper"] img {{
 {sidebar_css}
 </style>
 """, unsafe_allow_html=True)
+
+# Category and platform buttons become full-image tiles with a readable overlay.
+# Streamlit's keyed button wrappers let each tile keep native click behavior.
+_tile_css = ["<style>"]
+for _category, _url in CATEGORY_IMAGES.items():
+    for _key in (f"home_category_{_category}", f"category_{_category}"):
+        _tile_css.append(f"""
+        .st-key-{_key} button {{
+            min-height: 188px !important;
+            height: 188px !important;
+            border: 0 !important;
+            border-radius: 16px !important;
+            padding: 0 0 17px 17px !important;
+            display: flex !important;
+            align-items: flex-end !important;
+            justify-content: flex-start !important;
+            text-align: left !important;
+            color: #FFFFFF !important;
+            font-size: 19px !important;
+            font-weight: 800 !important;
+            letter-spacing: 1.1px !important;
+            text-shadow: 0 2px 8px rgba(0,0,0,.55) !important;
+            background-image: linear-gradient(0deg, rgba(35,24,18,.76) 0%, rgba(35,24,18,.22) 54%, rgba(35,24,18,.02) 100%), url('{_url}') !important;
+            background-size: cover !important;
+            background-position: center !important;
+            box-shadow: 0 5px 15px rgba(101,67,47,.10) !important;
+            transition: transform .18s ease, box-shadow .18s ease !important;
+        }}
+        .st-key-{_key} button:hover {{
+            border: 0 !important;
+            color: #FFFFFF !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 9px 20px rgba(101,67,47,.18) !important;
+            filter: saturate(1.06) !important;
+        }}
+        .st-key-{_key} button p {{ color: #FFFFFF !important; }}
+        """)
+for _platform, _url in PLATFORM_IMAGES.items():
+    _key = f"platform_{_platform}"
+    _tile_css.append(f"""
+    .st-key-{_key} button {{
+        min-height: 170px !important;
+        height: 170px !important;
+        border: 1px solid rgba(101,67,47,.12) !important;
+        border-radius: 16px !important;
+        padding: 0 0 16px 15px !important;
+        display: flex !important;
+        align-items: flex-end !important;
+        justify-content: flex-start !important;
+        text-align: left !important;
+        color: #FFFFFF !important;
+        font-size: 18px !important;
+        font-weight: 800 !important;
+        letter-spacing: .7px !important;
+        text-shadow: 0 1px 3px rgba(0,0,0,.55) !important;
+        background-color: {PLATFORM_COLORS[_platform]} !important;
+        /* Fill the entire clickable tile with the exact marketplace image. */
+        background-image: linear-gradient(to top, rgba(25,18,14,.62), rgba(25,18,14,0) 58%), url('{_url}') !important;
+        background-size: 100% 100%, cover !important;
+        background-repeat: no-repeat, no-repeat !important;
+        background-position: center, center !important;
+        box-shadow: 0 5px 15px rgba(101,67,47,.10) !important;
+        transition: transform .18s ease, box-shadow .18s ease !important;
+    }}
+    .st-key-{_key} button:hover {{
+        border: 0 !important;
+        color: #FFFFFF !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 9px 20px rgba(101,67,47,.18) !important;
+    }}
+    .st-key-{_key} button p {{ color: #FFFFFF !important; }}
+    """)
+_tile_css.append("</style>")
+st.markdown("\n".join(_tile_css), unsafe_allow_html=True)
 
 # -------------------- LOAD PRODUCT DATA --------------------
 @st.cache_data
@@ -449,7 +595,7 @@ def show_custom_image(image_url, alt_text="Shopping inspiration"):
     )
     st.image(image, use_container_width=True)
 
-def resize_product_image(image):
+def resize_product_image(image, background=(255, 255, 255)):
     if image is None:
         return None
     image = image.convert("RGB")
@@ -458,9 +604,8 @@ def resize_product_image(image):
         IMAGE_SIZE,
         method=Image.Resampling.LANCZOS
     )
-    canvas = Image.new(
-        "RGB", IMAGE_SIZE, (247, 241, 232)
-    )
+    # Other pages retain their default; results cards request a white image stage.
+    canvas = Image.new("RGB", IMAGE_SIZE, background)
     x = (IMAGE_SIZE[0] - fitted.width) // 2
     y = (IMAGE_SIZE[1] - fitted.height) // 2
     canvas.paste(fitted, (x, y))
@@ -511,6 +656,10 @@ def reset_product_type():
     st.session_state.product_type_widget = "All"
 
 def go_to(page):
+    # Scroll to the top only when entering results from another page.
+    # Avoid jumping upward when filters or pagination trigger a rerun.
+    if page == "results" and st.session_state.get("page") != "results":
+        st.session_state.scroll_results_to_top = True
     st.session_state.page = page
     st.session_state.menu_open = False
     st.rerun()
@@ -603,28 +752,26 @@ def get_valid_selection(products):
 
 # -------------------- CATEGORY CARD --------------------
 def show_category_card(category, count, key_prefix):
-    icon = CATEGORY_ICONS.get(category, "🛍️")
+    """Render a vintage-inspired image tile that acts as the category button."""
+    key = f"{key_prefix}_{category}"
+    image_url = CATEGORY_IMAGES.get(category, "")
+    if st.button(
+        category.upper(),
+        key=key,
+        use_container_width=True,
+        help=f"Explore {category} products",
+    ):
+        st.session_state.category = category
+        st.session_state.platform = ""
+        reset_product_type()
+        go_to("setup")
+    st.caption(f"{count:,} products")
 
-    with st.container(border=True):
-        show_category_image(category)
-
-        st.markdown(f"### {icon} {category}")
-        st.caption(f"{count:,} products to explore")
-
-        if st.button(
-            f"Explore {category} →",
-            key=f"{key_prefix}_{category}",
-            use_container_width=True
-        ):
-            st.session_state.category = category
-            st.session_state.platform = ""
-            reset_product_type()
-            go_to("setup")
 
 
 # -------------------- PRODUCT CARDS --------------------
 
-def show_products(products):
+def show_products(products, show_count=True):
     if not isinstance(products, pd.DataFrame) or products.empty:
         st.info(
             "No matching products found. "
@@ -632,7 +779,8 @@ def show_products(products):
         )
         return
 
-    st.caption(f"Showing {len(products):,} products")
+    if show_count:
+        st.caption(f"Showing {len(products):,} products")
 
     cards = []
 
@@ -678,6 +826,7 @@ def show_products(products):
             height += 50
 
         cards.append({
+            "card_id": len(cards),
             "image": image,
             "name": name,
             "brand": brand,
@@ -707,13 +856,13 @@ def show_products(products):
     ):
         with column:
             for card in cards_in_column:
-                with st.container(border=True):
+                with st.container(border=True, key=f"product_card_{card['card_id']}"):
 
                     # Show an image only when one loaded successfully.
                     # No placeholder is shown for missing images.
                     if card["image"] is not None:
                         st.image(
-                            resize_product_image(card["image"]),
+                            resize_product_image(card["image"], background=(255, 255, 255)),
                             use_container_width=True
                         )
 
@@ -771,76 +920,131 @@ if df.empty:
     )
     st.stop()
 
-# -------------------- SIDEBAR --------------------
-if st.session_state.page != "results":
+# -------------------- PAGE-SPECIFIC SIDEBAR --------------------
+if st.session_state.page == "results":
+    # Results page: the sidebar is for product filtering only.
     with st.sidebar:
-      
-        st.markdown("""
-        <div style="
-    padding: 8px 0 12px 0;
-">
-    <div style="
-        font-size: 29px;
-        font-weight: 800;
-        letter-spacing: -0.8px;
-        color: #65432F;
-        line-height: 1.3;
-    ">
-        🛒 SmartCart
-    </div>
-    <div style="
-        font-size: 13px;
-        color: #806958;
-        margin-top: 5px;
-        letter-spacing: 0.2px;
-    ">
-        Your personal shopping companion
-    </div>
-</div>
-""", unsafe_allow_html=True)
+        st.markdown("### Filter products")
+        st.caption("Choose a category and product type.")
+        st.divider()
+
+        st.markdown("**Category**")
+        sidebar_categories = get_available_categories(df)
+        for sidebar_category in sidebar_categories:
+            is_selected = st.session_state.category == sidebar_category
+            if st.button(
+                f"{CATEGORY_ICONS.get(sidebar_category, '🛍️')}  {sidebar_category}"
+                + ("  ✓" if is_selected else ""),
+                key=f"results_sidebar_category_{sidebar_category}",
+                use_container_width=True,
+                type="primary" if is_selected else "secondary"
+            ):
+                st.session_state.category = sidebar_category
+                available_platforms = get_available_platforms(df, sidebar_category)
+                st.session_state.platform = (
+                    available_platforms[0] if available_platforms else ""
+                )
+                reset_product_type()
+                st.rerun()
 
         st.divider()
-        if st.button("🏠 Home", use_container_width=True):
+        st.markdown("**Product type**")
+        sidebar_platforms = (
+            get_available_platforms(df, st.session_state.category)
+            if st.session_state.category else []
+        )
+        if sidebar_platforms:
+            if st.session_state.platform not in sidebar_platforms:
+                st.session_state.platform = sidebar_platforms[0]
+            sidebar_types = get_available_types(
+                df, st.session_state.category, st.session_state.platform
+            )
+            if not sidebar_types:
+                sidebar_types = [PRODUCT_TYPE_PLACEHOLDER]
+            if st.session_state.product_type not in sidebar_types:
+                reset_product_type()
+            current_type = (
+                st.session_state.product_type
+                if st.session_state.product_type in sidebar_types
+                else sidebar_types[0]
+            )
+            selected_sidebar_type = st.selectbox(
+                "Choose a type",
+                sidebar_types,
+                index=sidebar_types.index(current_type),
+                key="results_sidebar_product_type",
+                label_visibility="collapsed"
+            )
+            if selected_sidebar_type != st.session_state.product_type:
+                st.session_state.product_type = selected_sidebar_type
+                st.rerun()
+        else:
+            st.caption("Choose a category with available products.")
+else:
+    # Other pages, including Home: restore the original navigation sidebar.
+    with st.sidebar:
+        st.markdown("""
+        <div style="padding: 8px 0 12px 0;">
+            <div style="font-size: 29px; font-weight: 800; letter-spacing: -0.8px;
+                        color: #65432F; line-height: 1.3;">
+                🛒 SmartCart
+            </div>
+            <div style="font-size: 13px; color: #806958; margin-top: 5px;
+                        letter-spacing: 0.2px;">
+                Your personal shopping companion
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.divider()
+        if st.button("🏠 Home", key="nav_home", use_container_width=True):
             go_to("home")
-        if st.button("🛍️ Browse Products", use_container_width=True):
+        if st.button("🛍️ Browse Products", key="nav_browse", use_container_width=True):
             go_to("setup")
-        if st.button(
-            "📸 Image Recommendations",
-            use_container_width=True
-        ):
+        if st.button("📸 Image Recommendations", key="nav_image", use_container_width=True):
             go_to("image")
-        if st.button("🔎 Text Search", use_container_width=True):
+        if st.button("🔎 Text Search", key="nav_text", use_container_width=True):
             go_to("text")
         st.divider()
+        # Purple assistant button opens a compact pop-up, keeping the sidebar uncluttered.
+        with st.popover("💬 Ask AI Assistant", use_container_width=True):
+            st.markdown("### Your shopping assistant")
+            st.caption("Tell me what you need and I’ll help you find it.")
+            with st.form("sidebar_assistant_form", clear_on_submit=False):
+                sidebar_assistant_query = st.text_input(
+                    "What are you looking for?",
+                    placeholder="e.g. phone under ₹20,000",
+                    label_visibility="collapsed"
+                )
+                sidebar_assistant_submit = st.form_submit_button(
+                    "Ask SmartCart", use_container_width=True
+                )
+            if sidebar_assistant_submit:
+                if not sidebar_assistant_query.strip():
+                    st.warning("Please enter what you're looking for.")
+                else:
+                    try:
+                        assistant_response = shopping_assistant(
+                            sidebar_assistant_query, str(DATA_PATH)
+                        )
+                        st.session_state["sidebar_assistant_response"] = assistant_response
+                    except Exception as exc:
+                        st.session_state["sidebar_assistant_response"] = (
+                            f"Sorry, the assistant couldn't process that request: {exc}"
+                        )
+            if st.session_state.get("sidebar_assistant_response") is not None:
+                st.divider()
+                st.markdown("**Assistant response**")
+                sidebar_response = st.session_state["sidebar_assistant_response"]
+                if isinstance(sidebar_response, pd.DataFrame):
+                    st.caption(f"Found {len(sidebar_response)} matching products.")
+                    if not sidebar_response.empty:
+                        st.dataframe(sidebar_response.head(5), use_container_width=True)
+                    else:
+                        st.caption("No matching products found. Try different keywords.")
+                else:
+                    st.write(str(sidebar_response))
+        st.divider()
         st.caption("Find something you'll love ✨")
-
-# -------------------- FLOATING SHOPPING ASSISTANT --------------------
-with st.popover("💬 Chat with SmartCart"):
-    st.markdown("### ✨ Your Shopping Assistant")
-    st.write("Tell me what you're looking for.")
-    with st.form("floating_assistant_form"):
-        assistant_query = st.text_input(
-            "Shopping request",
-            placeholder="e.g. Samsung phone under 20000"
-        )
-        assistant_submit = st.form_submit_button(
-            "Find Products",
-            use_container_width=True
-        )
-    if assistant_submit:
-        if not assistant_query.strip():
-            st.warning("Please enter a shopping request.")
-        else:
-            try:
-                with st.spinner("Finding products for you..."):
-                    results = shopping_assistant(
-                        assistant_query,
-                        str(DATA_PATH)
-                    )
-                st.session_state.assistant_results = results
-                go_to("assistant_results")
-            except Exception as error:
-                st.error(f"Search failed: {error}")
 
 # -------------------- HOME PAGE --------------------
 if st.session_state.page == "home":
@@ -979,25 +1183,19 @@ elif st.session_state.page == "setup":
     )
     for index, option in enumerate(categories):
         with category_columns[index % len(category_columns)]:
-            count = len(category_products(df, option))
-            with st.container(border=True):
-                show_category_image(option)
-                st.markdown(
-                    f"### {CATEGORY_ICONS[option]} {option}"
-                )
-                st.caption(f"{count:,} products")
-                selected = st.session_state.category == option
-                if st.button(
-                    "Selected ✓" if selected else "Choose Category",
-                    key=f"category_{option}",
-                    use_container_width=True,
-                    type="primary" if selected else "secondary"
-                ):
-                    if st.session_state.category != option:
-                        st.session_state.category = option
-                        st.session_state.platform = ""
-                        reset_product_type()
-                    # Streamlit automatically reruns after a button click.
+            selected = st.session_state.category == option
+            if st.button(
+                option.upper() + ("  ✓" if selected else ""),
+                key=f"category_{option}",
+                use_container_width=True,
+                type="primary" if selected else "secondary",
+                help=f"Choose {option}",
+            ):
+                if st.session_state.category != option:
+                    st.session_state.category = option
+                    st.session_state.platform = ""
+                    reset_product_type()
+                # Streamlit automatically reruns after a button click.
 
     st.divider()
     st.subheader("02 · Choose your shopping platform")
@@ -1021,35 +1219,20 @@ elif st.session_state.page == "setup":
                 len(available_platforms),
                 gap="medium"
             )
-            for column, option in zip(
-                platform_columns, available_platforms
-            ):
+            for column, option in zip(platform_columns, available_platforms):
                 with column:
-                    with st.container(border=True):
-                        st.markdown(
-                            f"<div style='background:"
-                            f"{PLATFORM_COLORS.get(option, '#E5D4BF')};"
-                            "border-radius:14px;padding:22px;text-align:center;'>"
-                            f"<div style='font-size:42px;'>"
-                            f"{PLATFORM_ICONS.get(option, '🛒')}</div>"
-                            f"<div style='font-size:20px;font-weight:700;"
-                            f"color:#38264E;'>{option}</div></div>",
-                            unsafe_allow_html=True
-                        )
-                        st.write("")
-                        selected = (
-                            st.session_state.platform == option
-                        )
-                        if st.button(
-                            "Selected ✓" if selected else "Choose Platform",
-                            key=f"platform_{option}",
-                            use_container_width=True,
-                            type="primary" if selected else "secondary"
-                        ):
-                            if st.session_state.platform != option:
-                                st.session_state.platform = option
-                                reset_product_type()
-                            # Streamlit automatically reruns after a button click.
+                    selected = st.session_state.platform == option
+                    if st.button(
+                        option.upper() + ("  ✓" if selected else ""),
+                        key=f"platform_{option}",
+                        use_container_width=True,
+                        type="primary" if selected else "secondary",
+                        help=f"Shop on {option}",
+                    ):
+                        if st.session_state.platform != option:
+                            st.session_state.platform = option
+                            reset_product_type()
+                        # Streamlit automatically reruns after a button click.
 
     # Automatically scroll to the next step after a selection.
     if st.session_state.category:
@@ -1096,18 +1279,17 @@ elif st.session_state.page == "setup":
             st.session_state.category,
             st.session_state.platform
         )
-        # "All" is the default, so choosing a product type is optional.
         type_options = available_types
-        # If the category changed, reset to All if the old value is invalid.
-        if st.session_state.product_type_widget not in type_options:
-            st.session_state.product_type_widget = "All"
-        chosen_type = st.selectbox(
-            "What would you like to explore?",
-            options=type_options,
+        if st.session_state.product_type not in type_options:
+            reset_product_type()
+        st.caption("Choose a specific type, or keep All products selected.")
+        selected_type = st.selectbox(
+            "Product type",
+            type_options,
+            index=type_options.index(st.session_state.product_type),
             key="product_type_widget"
         )
-        # Keep the actual selection synchronized with the widget.
-        st.session_state.product_type = chosen_type
+        st.session_state.product_type = selected_type
 
     if (
         st.session_state.category
@@ -1137,6 +1319,127 @@ elif st.session_state.page == "setup":
 
 # -------------------- PRODUCT RESULTS --------------------
 elif st.session_state.page == "results":
+    # Results-only styling: deliberately injected only on this page so the
+    # homepage stays exactly as designed.
+    # Results-only styling: scoped to the results page so the homepage stays untouched.
+    st.markdown("""
+    <style>
+    /* Results header spacing only. */
+    .main .block-container { padding-top: 1rem !important; }
+    .st-key-results_header { margin-top: 0 !important; }
+    .st-key-results_header h1 { margin: 0 0 .15rem 0 !important; padding: 0 !important; }
+    .st-key-results_header [data-testid="stMarkdownContainer"] p { margin-bottom: .25rem !important; }
+
+    /* Warm beige-brown filter panel: blends with SmartCart's cream/brown palette. */
+    [data-testid="stExpander"] {
+        background: #E5D4BF !important;
+        background-color: #E5D4BF !important;
+        border: 1px solid #CDB398 !important;
+        border-radius: 15px !important;
+        margin: .2rem 0 .75rem 0 !important;
+        box-shadow: 0 3px 10px rgba(101,67,47,.08) !important;
+        overflow: hidden !important;
+    }
+    [data-testid="stExpander"] details,
+    [data-testid="stExpander"] summary,
+    [data-testid="stExpander"] [data-testid="stExpanderDetails"],
+    [data-testid="stExpander"] [data-testid="stVerticalBlock"],
+    [data-testid="stExpander"] [data-testid="stHorizontalBlock"] {
+        background: transparent !important;
+        background-color: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+    }
+    [data-testid="stExpander"] summary,
+    [data-testid="stExpander"] summary p,
+    [data-testid="stExpander"] summary svg,
+    [data-testid="stExpander"] label,
+    [data-testid="stExpander"] [data-testid="stMarkdownContainer"] p,
+    [data-testid="stExpander"] [data-testid="stCaptionContainer"] {
+        color: #65432F !important;
+    }
+    [data-testid="stExpander"] summary { font-weight: 750 !important; padding: .75rem .95rem !important; }
+    [data-testid="stExpander"] [data-testid="stExpanderDetails"] { padding: .5rem .9rem .9rem !important; }
+    [data-testid="stExpander"] input,
+    [data-testid="stExpander"] [data-baseweb="select"] > div,
+    [data-testid="stExpander"] [data-baseweb="tag"] {
+        background: #FFFCF8 !important;
+        background-color: #FFFCF8 !important;
+        color: #65432F !important;
+        border-color: #CDB398 !important;
+    }
+    [data-testid="stExpander"] [data-testid="stSlider"] {
+        color: #65432F !important;
+    }
+
+    /* Streamlit versions place the container key on different wrapper levels.
+       Style both the keyed wrapper and its bordered child to avoid selector misses. */
+    div[class*="st-key-product_card_"] {
+        background: #EFE2D2 !important;
+        background-color: #EFE2D2 !important;
+        border-radius: 18px !important;
+    }
+    div[class*="st-key-product_card_"] [data-testid="stVerticalBlockBorderWrapper"],
+    div[data-testid="stVerticalBlockBorderWrapper"][class*="st-key-product_card_"],
+    div[data-testid="stVerticalBlockBorderWrapper"]:has(div[class*="st-key-product_card_"]) {
+        background: #EFE2D2 !important;
+        background-color: #EFE2D2 !important;
+        border: 1px solid #D7BFA7 !important;
+        border-radius: 18px !important;
+        padding: .65rem !important;
+        box-shadow: 0 3px 10px rgba(101,67,47,.08) !important;
+        transition: background-color .18s ease, box-shadow .18s ease !important;
+    }
+    div[class*="st-key-product_card_"]:hover,
+    div[class*="st-key-product_card_"] [data-testid="stVerticalBlockBorderWrapper"]:hover,
+    div[data-testid="stVerticalBlockBorderWrapper"][class*="st-key-product_card_"]:hover {
+        background: #E7D6C3 !important;
+        background-color: #E7D6C3 !important;
+        box-shadow: 0 6px 15px rgba(101,67,47,.12) !important;
+    }
+    /* Pure white image area; no lavender canvas or coloured image padding. */
+    div[class*="st-key-product_card_"] [data-testid="stImage"],
+    div[class*="st-key-product_card_"] [data-testid="stImage"] > div,
+    div[class*="st-key-product_card_"] [data-testid="stImage"] img {
+        background: #FFFFFF !important;
+        background-color: #65432F !important;
+        border: 0 !important;
+        border-radius: 12px !important;
+        padding: 0 !important;
+        object-fit: contain !important;
+    }
+    div[class*="st-key-product_card_"] [data-testid="stImage"] {
+        margin: 0 0 .4rem 0 !important;
+        overflow: hidden !important;
+        box-shadow: none !important;
+    }
+    div[class*="st-key-product_card_"] [data-testid="stCaptionContainer"] { color: #65432F !important; }
+    </style>
+    """, unsafe_allow_html=True)
+    if st.session_state.pop("scroll_results_to_top", False):
+        components.html("""
+        <script>
+        (() => {
+          const scrollTop = () => {
+            try {
+              const doc = window.parent.document;
+              const main = doc.querySelector('section.main');
+              const appView = doc.querySelector('[data-testid="stAppViewContainer"]');
+              const block = doc.querySelector('.main .block-container');
+              window.parent.scrollTo({top: 0, left: 0, behavior: 'auto'});
+              if (main) main.scrollTo({top: 0, left: 0, behavior: 'auto'});
+              if (appView) appView.scrollTo({top: 0, left: 0, behavior: 'auto'});
+              if (block) block.scrollIntoView({block: 'start', behavior: 'auto'});
+            } catch (e) {}
+          };
+          scrollTop();
+          requestAnimationFrame(scrollTop);
+          setTimeout(scrollTop, 150);
+          setTimeout(scrollTop, 500);
+          setTimeout(scrollTop, 900);
+        })();
+        </script>
+        """, height=1, scrolling=False)
     if st.button("☰  Menu", key="results_menu"):
         st.session_state.menu_open = not st.session_state.menu_open
         st.rerun()
@@ -1167,10 +1470,14 @@ elif st.session_state.page == "results":
         st.stop()
 
     category, platform, _ = current
-    st.title(f"{CATEGORY_ICONS.get(category, '🛍️')} {category}")
-    st.write(f"Explore {category.lower()} products on {platform}.")
-    if st.button("← Change Category or Platform"):
-        go_to("setup")
+    with st.container(key="results_header"):
+        header_title, header_action = st.columns([4, 1.65], vertical_alignment="center")
+        with header_title:
+            st.title(f"{CATEGORY_ICONS.get(category, '🛍️')} {category}")
+            st.caption(f"Explore {category.lower()} products on {platform}.")
+        with header_action:
+            if st.button("← Change selection", key="results_change_selection", use_container_width=True):
+                go_to("setup")
 
     products = platform_products(
         category_products(df, category),
@@ -1187,9 +1494,12 @@ elif st.session_state.page == "results":
         )
         st.stop()
 
-    st.subheader("Refine your search")
-    with st.expander("🎯 Filters and sorting", expanded=True):
-        filter_one, filter_two, filter_three = st.columns(3)
+    # One styled expander only; closed by default to save space.
+    with st.expander("🎯 Filters & sorting", expanded=False):
+        filter_one, filter_two, filter_three, filter_four = st.columns(
+            [1.5, 1, 1.2, 1.3],
+            gap="medium"
+        )
         valid_prices = products["price"].dropna()
         with filter_one:
             if not valid_prices.empty:
@@ -1207,7 +1517,7 @@ elif st.session_state.page == "results":
                     st.caption(f"Price: ₹{minimum:,.2f}")
             else:
                 price_range = None
-                st.caption("No price information available.")
+                st.caption("Price data unavailable")
         with filter_two:
             rating_choice = st.selectbox(
                 "Minimum rating",
@@ -1228,11 +1538,12 @@ elif st.session_state.page == "results":
             brand for brand in products["brand"].unique()
             if brand.strip()
         )
-        selected_brands = st.multiselect(
-            "Brands",
-            brands,
-            placeholder="All brands"
-        )
+        with filter_four:
+            selected_brands = st.multiselect(
+                "Brand",
+                brands,
+                placeholder="All brands"
+            )
 
     if price_range is not None:
         products = products[
@@ -1267,24 +1578,44 @@ elif st.session_state.page == "results":
             "product_name", na_position="last"
         )
 
-    st.divider()
-    st.subheader("Your Products")
-    st.write(f"Found {len(products):,} matching products.")
     page_size = 12
     total_pages = max(
         1, (len(products) + page_size - 1) // page_size
     )
-    current_page = st.number_input(
-        "Page",
-        min_value=1,
-        max_value=total_pages,
-        value=1,
-        step=1,
-        key="product_page_number"
-    )
+    current_page = st.session_state.get("product_page_number", 1)
+    current_page = min(max(int(current_page), 1), total_pages)
     start = (current_page - 1) * page_size
-    show_products(products.iloc[start:start + page_size])
-    st.caption(f"Page {current_page} of {total_pages}")
+    page_products = products.iloc[start:start + page_size]
+    st.caption(f"{len(products):,} products · showing {start + 1}–{start + len(page_products)}")
+    with st.container(key="results_products_panel"):
+        show_products(page_products, show_count=False)
+
+    st.divider()
+    page_left, page_center, page_right = st.columns([1, 2, 1])
+    with page_left:
+        if st.button(
+            "← Previous",
+            disabled=current_page <= 1,
+            use_container_width=True,
+            key="products_prev_page"
+        ):
+            st.session_state.product_page_number = current_page - 1
+            st.rerun()
+    with page_center:
+        st.markdown(
+            f"<div style='text-align:center; padding-top:8px;'>"
+            f"Page {current_page} of {total_pages}</div>",
+            unsafe_allow_html=True
+        )
+    with page_right:
+        if st.button(
+            "Next →",
+            disabled=current_page >= total_pages,
+            use_container_width=True,
+            key="products_next_page"
+        ):
+            st.session_state.product_page_number = current_page + 1
+            st.rerun()
 
 # -------------------- IMAGE RECOMMENDATIONS --------------------
 elif st.session_state.page == "image":
