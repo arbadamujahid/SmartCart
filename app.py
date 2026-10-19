@@ -10,6 +10,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from sympy import python
 from image_recommendation.integrated_recommender import recommend_from_image
 from scripts.ai_shopping_assistant import shopping_assistant
+from models.content_based_recommender import recommend_products
 
 # -------------------- PAGE SETTINGS --------------------
 
@@ -518,12 +519,24 @@ def load_products():
         df[column] = pd.to_numeric(
             df[column], errors="coerce"
         )
+    
     for column in [
         "platform", "category", "product_name",
         "brand", "features", "description"
     ]:
         df[column] = df[column].fillna("").astype(str)
+
+    # Prepare text used by the content-based recommendation model.
+    df["recommendation_text"] = (
+        df["product_name"] + " "
+        + df["brand"] + " "
+        + df["category"] + " "
+        + df["features"] + " "
+        + df["description"]
+    ).str.strip()
+
     return df
+
 
 # -------------------- LOAD IMAGES --------------------
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -898,6 +911,15 @@ def show_products(products, show_count=True):
                         st.caption(
                             f"Available on {card['platform']}"
                         )
+                     if st.button(
+                        "✨ Get Similar Products",
+                        key=f"similar_product_{card['card_id']}",
+                        use_container_width=True
+                    ):
+                        st.session_state["selected_product_name"] = card["name"]
+                        st.session_state["selected_product_brand"] = card["brand"]
+                        st.session_state["selected_product_platform"] = card["platform"]
+                        st.session_state["show_similar_products"] = True
 
                     url = card["url"]
 
@@ -1589,6 +1611,41 @@ elif st.session_state.page == "results":
     st.caption(f"{len(products):,} products · showing {start + 1}–{start + len(page_products)}")
     with st.container(key="results_products_panel"):
         show_products(page_products, show_count=False)
+        # Show similar products for the selected product
+    if st.session_state.get("show_similar_products", False):
+        selected_name = st.session_state.get("selected_product_name", "")
+        selected_brand = st.session_state.get("selected_product_brand", "")
+        selected_platform = st.session_state.get("selected_product_platform", "")
+
+        st.divider()
+        st.subheader(f"✨ Top 5 Similar Products for {selected_name}")
+
+        recommendation_candidates = products.reset_index(drop=True).copy()
+
+        matching_products = recommendation_candidates[
+            (recommendation_candidates["product_name"].astype(str) == str(selected_name))
+            & (recommendation_candidates["brand"].astype(str) == str(selected_brand))
+            & (recommendation_candidates["platform"].astype(str) == str(selected_platform))
+        ]
+
+        if matching_products.empty:
+            st.info("The selected product was not found in the current results. Try selecting it again.")
+        else:
+            from models.content_based_recommender import recommend_products
+
+            selected_index = matching_products.index[0]
+
+            similar_products = recommend_products(
+                recommendation_candidates,
+                selected_index,
+                top_n=5
+            )
+
+            if similar_products.empty:
+                st.info("No similar products could be found for this item.")
+            else:
+                show_products(similar_products, show_count=False)
+    
 
     st.divider()
     page_left, page_center, page_right = st.columns([1, 2, 1])
