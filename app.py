@@ -907,11 +907,13 @@ def show_products(products, show_count=True):
                                 f"⭐ {card['rating']}"
                             )
 
+                    
                     if card["platform"]:
                         st.caption(
                             f"Available on {card['platform']}"
                         )
-                     if st.button(
+
+                    if st.button(
                         "✨ Get Similar Products",
                         key=f"similar_product_{card['card_id']}",
                         use_container_width=True
@@ -923,14 +925,6 @@ def show_products(products, show_count=True):
 
                     url = card["url"]
 
-                    if isinstance(url, str) and url.startswith(
-                        ("http://", "https://")
-                    ):
-                        st.link_button(
-                            "View Product ↗",
-                            url,
-                            use_container_width=True
-                        )
 
 
 # -------------------- LOAD DATA --------------------
