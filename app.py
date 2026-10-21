@@ -9,7 +9,10 @@ import streamlit.components.v1 as components
 from PIL import Image, ImageOps, UnidentifiedImageError
 from image_recommendation.integrated_recommender import recommend_from_image
 from scripts.ai_shopping_assistant import shopping_assistant
-
+from models.content_based_recommender import (
+    prepare_product_text,
+    recommend_products,
+)
 # -------------------- PAGE SETTINGS --------------------
 
 st.set_page_config(
@@ -737,7 +740,11 @@ def show_category_card(category, count, key_prefix):
 
 # -------------------- PRODUCT CARDS --------------------
 
-def show_products(products, show_count=True):
+def show_products(
+    products,
+    show_count=True,
+    key_prefix="product_card"
+):
     if not isinstance(products, pd.DataFrame) or products.empty:
         st.info(
             "No matching products found. "
@@ -821,7 +828,10 @@ def show_products(products, show_count=True):
     ):
         with column:
             for card in cards_in_column:
-                with st.container(border=True, key=f"product_card_{card['card_id']}"):
+                with st.container(
+    border=True,
+    key=f"{key_prefix}_{card['card_id']}"
+):
 
                     if card["image"] is not None:
                         st.image(
@@ -1528,6 +1538,92 @@ elif st.session_state.page == "results":
     st.caption(f"{len(products):,} products · showing {start + 1}–{start + len(page_products)}")
     with st.container(key="results_products_panel"):
         show_products(page_products, show_count=False)
+        
+    st.divider()
+    st.subheader("✨ Content-Based Recommendations")
+    st.caption(
+        "Choose a product to discover similar products "
+        "based on names, brands, features, and descriptions."
+    )
+
+    # Use the current filtered products and preserve their columns.
+    recommendation_data = products.copy().reset_index(drop=True)
+
+    if not recommendation_data.empty:
+        for column in [
+            "product_name",
+            "brand",
+            "features",
+            "description",
+        ]:
+            if column not in recommendation_data.columns:
+                recommendation_data[column] = ""
+
+        # Prepare text for the content-based model.
+        recommendation_data = prepare_product_text(
+            recommendation_data
+        )
+
+        selected_index = st.selectbox(
+            "Select a product",
+            options=list(range(len(recommendation_data))),
+            format_func=lambda i: (
+                f"{recommendation_data.iloc[i]['product_name']}"
+                + (
+                    f" — {recommendation_data.iloc[i]['brand']}"
+                    if recommendation_data.iloc[i]["brand"]
+                    else ""
+                )
+            ),
+            key="content_rec_product",
+        )
+
+        if st.button(
+            "Find Similar Products",
+            key="run_content_recommendations",
+            type="primary",
+        ):
+            try:
+                results = recommend_products(
+                    recommendation_data,
+                    selected_index,
+                    top_n=5,
+                )
+
+                st.session_state["content_rec_results"] = results
+                st.session_state["content_rec_source"] = selected_index
+
+            except Exception as error:
+                st.session_state.pop("content_rec_results", None)
+                st.error(
+                    f"Could not generate recommendations: {error}"
+                )
+
+        # Keep the results visible after Streamlit reruns.
+        if (
+            st.session_state.get("content_rec_source")
+            == selected_index
+            and "content_rec_results" in st.session_state
+        ):
+            recommended_products = st.session_state[
+                "content_rec_results"
+            ]
+
+            if recommended_products.empty:
+                st.info(
+                    "No sufficiently similar products were found. "
+                    "Try selecting another product."
+                )
+            else:
+                st.markdown("#### Products you may like")
+                show_products(
+                    recommended_products,
+                    show_count=False,
+                    key_prefix="content_rec_card",
+                )
+    else:
+        st.info("No products are available for recommendations.")
+
 
     st.divider()
     page_left, page_center, page_right = st.columns([1, 2, 1])
