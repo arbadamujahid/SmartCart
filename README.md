@@ -1,5 +1,9 @@
 # SmartCart — Product Recommendation System
 
+## Live Demo
+
+🚀 **[Launch SmartCart](https://smartcart-online.streamlit.app/)**
+
 ## 1. Project Overview
 
 SmartCart is a product recommendation system designed to help users discover relevant products across multiple product categories and e-commerce datasets. It uses product information, recommendation algorithms, filtering, and image-based similarity to support product discovery.
