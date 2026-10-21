@@ -7,7 +7,6 @@ import requests
 import streamlit as st
 import streamlit.components.v1 as components
 from PIL import Image, ImageOps, UnidentifiedImageError
-from sympy import python
 from image_recommendation.integrated_recommender import recommend_from_image
 from scripts.ai_shopping_assistant import shopping_assistant
 
@@ -55,11 +54,6 @@ HOME_DISCOVERY_IMAGES = {
         "https://images.openai.com/static-rsc-4/yPGVaybfxFaxwdlGFM23RcItetD1OacQMkCxN5uwM7wtlEHbIHOuDcjf-BzN2It8aQdgZ-StdpSTrbyaGslXr4sKggJVTKtndYVfgI2TyvibRPHUk8opJZaYcxtvsig7pLD4qMy0blCHFyQxISeUX1wg1smreBoQ68soEzu0dXc?purpose=inline"
     ),
 }
-
-HERO_IMAGE_URL = (
-    "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da"
-    "?auto=format&fit=crop&w=1800&q=85&v=smartcart-hero-3"
-)
 
 PLATFORM_ICONS = {
     "Amazon": "📦",
@@ -185,8 +179,6 @@ for key, value in defaults.items():
         st.session_state[key] = value
 
 # -------------------- CUSTOM DESIGN --------------------
-hide_sidebar = False
-sidebar_css = ""
 st.markdown(f"""
 <style>
 .stApp {{
@@ -420,7 +412,6 @@ div[data-testid="stVerticalBlockBorderWrapper"] img {{
 [data-testid="stSidebar"] h2 {{
     color: #65432F;
 }}
-{sidebar_css}
 </style>
 """, unsafe_allow_html=True)
 
@@ -554,28 +545,6 @@ def load_image(url):
         ValueError
     ):
         return None
-
-def show_category_image(category):
-    image_url = CATEGORY_IMAGES.get(category)
-    if not image_url:
-        return
-    image = load_image(image_url)
-    if image is None:
-        st.caption(
-            f"{CATEGORY_ICONS.get(category, '🛍️')} {category}"
-        )
-        return
-    image = ImageOps.fit(
-        image,
-        CATEGORY_IMAGE_SIZE,
-        method=Image.Resampling.LANCZOS,
-        centering=(0.5, 0.5)
-    )
-    # A subtle cream/beige wash helps the different category photos sit
-    # naturally inside the SmartCart palette, while keeping each photo distinct.
-    warm_tint = Image.new("RGB", image.size, (247, 241, 232))
-    image = Image.blend(image, warm_tint, 0.10)
-    st.image(image, use_container_width=True)
 
 def show_custom_image(image_url, alt_text="Shopping inspiration"):
     """Display a distinct remote image using the existing image loader."""
@@ -749,12 +718,9 @@ def get_valid_selection(products):
     return category, platform, types
 
 # -------------------- CATEGORY CARD --------------------
-
-# -------------------- CATEGORY CARD --------------------
 def show_category_card(category, count, key_prefix):
     """Render a vintage-inspired image tile that acts as the category button."""
     key = f"{key_prefix}_{category}"
-    image_url = CATEGORY_IMAGES.get(category, "")
     if st.button(
         category.upper(),
         key=key,
@@ -799,7 +765,6 @@ def show_products(products, show_count=True):
             product, "product_url", "product_link", "url"
         )
 
-        # Cards without images need less vertical space.
         height = 0
 
         if image is not None:
@@ -858,15 +823,12 @@ def show_products(products, show_count=True):
             for card in cards_in_column:
                 with st.container(border=True, key=f"product_card_{card['card_id']}"):
 
-                    # Show an image only when one loaded successfully.
-                    # No placeholder is shown for missing images.
                     if card["image"] is not None:
                         st.image(
                             resize_product_image(card["image"], background=(255, 255, 255)),
                             use_container_width=True
                         )
 
-                    # Product details remain visible with or without an image.
                     st.markdown(f"**{card['name']}**")
 
                     if card["brand"]:
@@ -981,7 +943,6 @@ if st.session_state.page == "results":
         else:
             st.caption("Choose a category with available products.")
 else:
-    # Other pages, including Home: restore the original navigation sidebar.
     with st.sidebar:
         st.markdown("""
         <div style="padding: 8px 0 12px 0;">
@@ -1195,7 +1156,6 @@ elif st.session_state.page == "setup":
                     st.session_state.category = option
                     st.session_state.platform = ""
                     reset_product_type()
-                # Streamlit automatically reruns after a button click.
 
     st.divider()
     st.subheader("02 · Choose your shopping platform")
@@ -1232,8 +1192,7 @@ elif st.session_state.page == "setup":
                         if st.session_state.platform != option:
                             st.session_state.platform = option
                             reset_product_type()
-                        # Streamlit automatically reruns after a button click.
-
+        
     # Automatically scroll to the next step after a selection.
     if st.session_state.category:
         target_heading = (
@@ -1319,9 +1278,7 @@ elif st.session_state.page == "setup":
 
 # -------------------- PRODUCT RESULTS --------------------
 elif st.session_state.page == "results":
-    # Results-only styling: deliberately injected only on this page so the
-    # homepage stays exactly as designed.
-    # Results-only styling: scoped to the results page so the homepage stays untouched.
+    # Results-page styling, kept separate from the homepage.
     st.markdown("""
     <style>
     /* Results header spacing only. */
@@ -1424,12 +1381,14 @@ elif st.session_state.page == "results":
             try {
               const doc = window.parent.document;
               const main = doc.querySelector('section.main');
+              const stMain = doc.querySelector('[data-testid="stMain"]');
               const appView = doc.querySelector('[data-testid="stAppViewContainer"]');
               const block = doc.querySelector('.main .block-container');
               window.parent.scrollTo({top: 0, left: 0, behavior: 'auto'});
               if (main) main.scrollTo({top: 0, left: 0, behavior: 'auto'});
+              if (stMain) stMain.scrollTo({top: 0, left: 0, behavior: 'auto'});
               if (appView) appView.scrollTo({top: 0, left: 0, behavior: 'auto'});
-              if (block) block.scrollIntoView({block: 'start', behavior: 'auto'});
+              if (block) block.scrollTop = 0;
             } catch (e) {}
           };
           scrollTop();
@@ -1440,26 +1399,6 @@ elif st.session_state.page == "results":
         })();
         </script>
         """, height=1, scrolling=False)
-    if st.button("☰  Menu", key="results_menu"):
-        st.session_state.menu_open = not st.session_state.menu_open
-        st.rerun()
-    if st.session_state.menu_open:
-        with st.container(border=True):
-            st.markdown("### Where would you like to go?")
-            menu_one, menu_two, menu_three, menu_four = st.columns(4)
-            with menu_one:
-                if st.button("🏠 Home", use_container_width=True):
-                    go_to("home")
-            with menu_two:
-                if st.button("🛍️ Browse", use_container_width=True):
-                    go_to("setup")
-            with menu_three:
-                if st.button("📸 Image Search", use_container_width=True):
-                    go_to("image")
-            with menu_four:
-                if st.button("🔎 Text Search", use_container_width=True):
-                    go_to("text")
-
     current = get_valid_selection(df)
     if current is None:
         st.warning(
