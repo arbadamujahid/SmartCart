@@ -784,7 +784,7 @@ def show_category_card(category, count, key_prefix):
 
 # -------------------- PRODUCT CARDS --------------------
 
-def show_products(products, show_count=True):
+def show_products(products, show_count=True, key_prefix="products"):
     if not isinstance(products, pd.DataFrame) or products.empty:
         st.info(
             "No matching products found. "
@@ -869,7 +869,10 @@ def show_products(products, show_count=True):
     ):
         with column:
             for card in cards_in_column:
-                with st.container(border=True, key=f"product_card_{card['card_id']}"):
+                with st.container(
+                    border=True,
+                    key=f"{key_prefix}_product_card_{card['card_id']}"
+    ):
 
                     # Show an image only when one loaded successfully.
                     # No placeholder is shown for missing images.
@@ -915,7 +918,7 @@ def show_products(products, show_count=True):
 
                     if st.button(
                         "✨ Get Similar Products",
-                        key=f"similar_product_{card['card_id']}",
+                        key=f"{key_prefix}_similar_product_{card['card_id']}",
                         use_container_width=True
                     ):
                         st.session_state["selected_product_name"] = card["name"]
@@ -1638,7 +1641,11 @@ elif st.session_state.page == "results":
             if similar_products.empty:
                 st.info("No similar products could be found for this item.")
             else:
-                show_products(similar_products, show_count=False)
+                show_products(
+                    similar_products,
+                    show_count=False,
+                    key_prefix="similar_products"
+             )
     
 
     st.divider()
