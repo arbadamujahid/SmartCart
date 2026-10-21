@@ -30,7 +30,6 @@ The project is developed by a team of four members, with each member responsible
 - **Image similarity:** Comparing product images using image feature representations.
 - **Streamlit interface:** Providing an interactive application for product discovery.
 
-*Note: The availability of individual features in the final application depends on their integration and the current deployed version.*
 
 ## 4. Technology Stack
 
@@ -63,8 +62,6 @@ Product-Recommendation-System/
 ├── README.md
 └── requirements.txt
 ```
-
-The structure above represents the main data and assistant components. Recommendation, image-processing, and interface files may have additional names or locations depending on the final repository version.
 
 ## 6. Team Contributions
 
@@ -117,7 +114,6 @@ The assistant and personalization components are documented as separate modules;
 
 **Key output:** Image feature extraction, image-similarity functionality, and Streamlit interface components.
 
-Image display and module integration should be verified against the current application before being described as fully functional.
 
 ## 7. Recommendation Workflow
 
@@ -129,8 +125,7 @@ Image display and module integration should be verified against the current appl
 6. Use image similarity where the image module is available and integrated.
 7. Display results through the application interface.
 
-The exact sequence depends on which modules are connected in the deployed version.
-
+ 
 ## 8. Dataset
 
 The project uses available product datasets from multiple e-commerce sources and categories. Processed data is organized into cleaned datasets and a master product file.
@@ -198,7 +193,6 @@ The project can be validated by checking:
 - Whether image features and similarity results are produced.
 - Whether the Streamlit application displays the available product information correctly.
 
-Testing results should be reported only after the corresponding checks have been performed.
 
 ## 11. Current Limitations
 
