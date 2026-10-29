@@ -1,8 +1,7 @@
+
 import pandas as pd
 
 from image_recommendation.image_search import find_similar_products
-from models.hybrid_recommender import hybrid_rank
-from scripts.personalization import personalize_results
 
 
 def recommend_from_image(image, top_k=10):
@@ -16,22 +15,16 @@ def recommend_from_image(image, top_k=10):
 
     df = pd.DataFrame(recommendations)
 
-    df["similarity_score"] = pd.to_numeric(
-        df["image_similarity"],
-        errors="coerce"
-    ).fillna(0)
+    # Rank products by image similarity only.
+    if "image_similarity" in df.columns:
+        df["similarity_score"] = pd.to_numeric(
+            df["image_similarity"],
+            errors="coerce"
+        ).fillna(0)
 
-    df["rating"] = pd.to_numeric(
-        df["rating"],
-        errors="coerce"
-    )
-
-    df = hybrid_rank(
-        df,
-        content_weight=0.75,
-        rating_weight=0.25
-    )
-
-    df = personalize_results(df)
+        df = df.sort_values(
+            by="similarity_score",
+            ascending=False
+        ).reset_index(drop=True)
 
     return df, predicted_category
