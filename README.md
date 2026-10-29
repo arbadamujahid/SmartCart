@@ -44,24 +44,53 @@ The project is developed by a team of four members, with each member responsible
 ## 5. Project Structure
 
 ```text
-Product-Recommendation-System/
+SmartCart/
+├── app.py
+├── README.md
+├── requirements.txt
+├── .gitignore
+├── .gitattributes
 │
 ├── data/
-│   ├── raw/
-│   ├── cleaned/
+│   ├── cleaned_datasets.zip
 │   └── processed/
 │       └── master_products.csv
 │
-├── scripts/
-│   └── build_master_dataset.py
+├── image_recommendation/
+│   ├── generate_embeddings.py
+│   ├── image_search.py
+│   ├── integrated_recommender.py
+│   └── test_multiple_categories.py
 │
-├── ai_shopping_assistant.py
-├── personalization.py
-├── user_history.py
-├── member3_assistant.py
-├── README.md
-└── requirements.txt
+├── models/
+│   └── content_based_recommender.py
+│
+├── outputs/
+│   └── image_recommendation/
+│       ├── product_embeddings.npy
+│       └── product_metadata.csv
+│
+└── scripts/
+    ├── ai_shopping_assistant.py
+    ├── build_master_dataset.py
+    ├── check_cleaned_data.py
+    ├── check_duplicate_ids.py
+    ├── clean_amazon_beauty.py
+    ├── clean_amazon_fashion.py
+    ├── clean_amazon_laptops.py
+    ├── clean_amazon_mobiles.py
+    ├── clean_amazon_shoes.py
+    ├── clean_flipkart.py
+    ├── clean_flipkart_mobile_new.py
+    ├── clean_myntra.py
+    ├── clean_myntra_shoes.py
+    ├── clean_nykaa.py
+    ├── member3_assistant.py
+    ├── personalization.py
+    ├── prepare_flipkart_laptops.py
+    └── standardize_all_datasets.py
 ```
+
 
 ## 6. Team Contributions
 
