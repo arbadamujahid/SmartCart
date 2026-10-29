@@ -115,15 +115,25 @@ The assistant and personalization components are documented as separate modules;
 **Key output:** Image feature extraction, image-similarity functionality, and Streamlit interface components.
 
 
+
 ## 7. Recommendation Workflow
 
-1. Load the available processed product dataset.
-2. Interpret the user's product requirements using the supported filters or assistant logic.
-3. Apply relevant product constraints.
-4. Use content-based similarity to rank products when that recommendation module is invoked.
-5. Return the configured number of recommendations.
-6. Use image similarity where the image module is available and integrated.
-7. Display results through the application interface.
+```mermaid
+flowchart TD
+    A([Start SmartCart]) --> B[Load processed product dataset]
+    B --> C{User input type}
+    C -->|Text search| D[Apply supported filters]
+    D --> E[TF-IDF and cosine similarity]
+    E --> F[Display similar products]
+    C -->|Shopping assistant| G[Interpret requirements]
+    G --> H[Filter available products]
+    H --> I[Display matching products]
+    C -->|Upload image| J[Extract image features]
+    J --> K[Compare image embeddings]
+    K --> L[Rank recommendations]
+    L --> M[Display image results]
+```
+
 
  
 ## 8. Dataset
