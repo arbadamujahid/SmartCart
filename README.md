@@ -1,4 +1,4 @@
-# SmartCart — Product Recommendation System
+# SmartCart - Product Recommendation System
 
 ## Live Demo
 
@@ -94,7 +94,7 @@ SmartCart/
 
 ## 6. Team Contributions
 
-### Member 1 — Data Collection and Database Preparation
+### Member 1 - Data Collection and Database Preparation
 
 **Responsibilities:**
 - Collect and organize available product datasets.
@@ -106,7 +106,7 @@ SmartCart/
 
 **Key output:** Processed product datasets and `data/processed/master_products.csv`.
 
-### Member 2 — Recommendation Modeling
+### Member 2 - Recommendation Modeling
 
 **Responsibilities:**
 - Develop the content-based recommendation approach.
@@ -119,7 +119,7 @@ SmartCart/
 
 **Important:** The final project documentation describes content-based recommendation separately. It does not claim that a hybrid recommendation model is part of the final application.
 
-### Member 3 — AI Shopping Assistant and Personalization
+### Member 3 - AI Shopping Assistant and Personalization
 
 **Responsibilities:**
 - Develop rule-based processing for supported natural-language shopping queries.
@@ -132,7 +132,7 @@ SmartCart/
 
 The assistant and personalization components are documented as separate modules; their availability in the deployed interface depends on the final integration.
 
-### Member 4 — Image Similarity and Application Interface
+### Member 4 - Image Similarity and Application Interface
 
 **Responsibilities:**
 - Develop image-based product similarity functionality.
