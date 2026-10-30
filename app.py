@@ -1,4 +1,5 @@
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 import ast
 import re
@@ -348,11 +349,33 @@ div.stButton > button[kind="primary"]:hover {{
 }}
 /* Streamlit can render the popover panel outside the sidebar DOM. */
 [data-testid="stPopoverBody"] {{
+    /* Widen the actual floating assistant panel, not only its contents. */
+    width: min(760px, calc(100vw - 2rem)) !important;
+    min-width: min(560px, calc(100vw - 2rem)) !important;
+    max-width: calc(100vw - 2rem) !important;
+    box-sizing: border-box !important;
     background: #F5EFF9 !important;
     border: 1px solid #D7C4E3 !important;
     border-radius: 16px !important;
     box-shadow: 0 12px 30px rgba(55, 35, 24, 0.17) !important;
-    padding: 0.9rem !important;
+    padding: 1.1rem !important;
+}}
+[data-testid="stPopoverBody"] [data-testid="stVerticalBlock"] {{
+    min-width: 0 !important;
+    width: 100% !important;
+}}
+[data-testid="stPopoverBody"] [data-testid="stDataFrame"],
+[data-testid="stPopoverBody"] [data-testid="stTable"] {{
+    width: 100% !important;
+    max-width: 100% !important;
+}}
+@media (max-width: 700px) {{
+    [data-testid="stPopoverBody"] {{
+        width: calc(100vw - 1.25rem) !important;
+        min-width: 0 !important;
+        max-width: calc(100vw - 1.25rem) !important;
+        padding: 0.75rem !important;
+    }}
 }}
 [data-testid="stPopoverBody"] h3 {{
     color: #65432F !important;
@@ -517,11 +540,22 @@ def load_products():
         "brand", "features", "description"
     ]:
         df[column] = df[column].fillna("").astype(str)
+
+    # Normalize text once at data-load time instead of rebuilding it on
+    # every Streamlit rerun when users change filters or pages.
+    df["_category_norm"] = df["category"].str.strip().str.lower()
+    df["_platform_norm"] = df["platform"].str.strip().str.lower()
+    df["_search_text"] = (
+        df[["product_name", "features", "description", "brand"]]
+        .fillna("")
+        .agg(" ".join, axis=1)
+        .str.lower()
+    )
     return df
 
 # -------------------- LOAD IMAGES --------------------
-@st.cache_data(ttl=3600, show_spinner=False)
-def load_image(url):
+@st.cache_data(ttl=3600, max_entries=100, show_spinner=False)
+def load_image(url, max_size=IMAGE_SIZE):
     if not isinstance(url, str):
         return None
     if not url.startswith(("http://", "https://")):
@@ -529,7 +563,7 @@ def load_image(url):
     try:
         response = requests.get(
             url,
-            timeout=3,
+            timeout=(1.5, 2.5),
             headers={"User-Agent": "Mozilla/5.0"}
         )
         response.raise_for_status()
@@ -540,7 +574,12 @@ def load_image(url):
             return None
         image = Image.open(BytesIO(response.content))
         image.load()
-        return image.convert("RGB")
+        image = image.convert("RGB")
+        return ImageOps.contain(
+            image,
+            max_size,
+            method=Image.Resampling.LANCZOS
+        )
     except (
         requests.RequestException,
         UnidentifiedImageError,
@@ -551,7 +590,7 @@ def load_image(url):
 
 def show_custom_image(image_url, alt_text="Shopping inspiration"):
     """Display a distinct remote image using the existing image loader."""
-    image = load_image(image_url)
+    image = load_image(image_url, CATEGORY_IMAGE_SIZE)
     if image is None:
         st.markdown(
             "<div style='height:180px;border-radius:12px;"
@@ -611,13 +650,13 @@ def get_image(row):
                 urls = ast.literal_eval(value)
                 if isinstance(urls, list):
                     for url in urls:
-                        image = load_image(url)
+                        image = load_image(url, IMAGE_SIZE)
                         if image is not None:
                             return image
             except (ValueError, SyntaxError):
                 continue
         else:
-            image = load_image(value)
+            image = load_image(value, IMAGE_SIZE)
             if image is not None:
                 return image
     return None
@@ -648,12 +687,16 @@ def apply_subcategory(products, product_type):
     ]
     if not columns:
         return products.iloc[0:0]
-    searchable_text = (
-        products[columns]
-        .fillna("")
-        .astype(str)
-        .agg(" ".join, axis=1)
-    )
+    if "_search_text" in products.columns:
+        searchable_text = products["_search_text"]
+    else:
+        searchable_text = (
+            products[columns]
+            .fillna("")
+            .astype(str)
+            .agg(" ".join, axis=1)
+            .str.lower()
+        )
     terms = SUBCATEGORY_TERMS.get(
         product_type,
         [product_type.lower()]
@@ -671,16 +714,20 @@ def apply_subcategory(products, product_type):
     ]
 
 def category_products(products, category):
-    return products[
-        products["category"].str.strip().str.lower()
-        == category.lower()
-    ]
+    category_values = (
+        products["_category_norm"]
+        if "_category_norm" in products.columns
+        else products["category"].str.strip().str.lower()
+    )
+    return products[category_values == category.strip().lower()]
 
 def platform_products(products, platform):
-    return products[
-        products["platform"].str.strip().str.lower()
-        == platform.lower()
-    ]
+    platform_values = (
+        products["_platform_norm"]
+        if "_platform_norm" in products.columns
+        else products["platform"].str.strip().str.lower()
+    )
+    return products[platform_values == platform.strip().lower()]
 
 def get_available_categories(products):
     available = set(
@@ -757,9 +804,20 @@ def show_products(
 
     cards = []
 
-    for _, product in products.iterrows():
-        image = get_image(product)
+    # Fetch the current page's images concurrently. Previously each request
+    # waited for the previous one, delaying the entire product grid.
+    product_rows = [product for _, product in products.iterrows()]
+    if product_rows:
+        image_loading_message = st.empty()
+        image_loading_message.caption("Loading product images…")
+        worker_count = min(6, len(product_rows))
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            product_images = list(executor.map(get_image, product_rows))
+        image_loading_message.empty()
+    else:
+        product_images = []
 
+    for product, image in zip(product_rows, product_images):
         name = get_value(
             product, "product_name", "name", "title"
         ) or "Product"
@@ -1009,7 +1067,12 @@ else:
                 if isinstance(sidebar_response, pd.DataFrame):
                     st.caption(f"Found {len(sidebar_response)} matching products.")
                     if not sidebar_response.empty:
-                        st.dataframe(sidebar_response.head(5), use_container_width=True)
+                        st.dataframe(
+                            sidebar_response.head(5),
+                            use_container_width=True,
+                            hide_index=True,
+                            height=min(360, 58 + 5 * 35),
+                        )
                     else:
                         st.caption("No matching products found. Try different keywords.")
                 else:
@@ -1559,11 +1622,6 @@ elif st.session_state.page == "results":
             if column not in recommendation_data.columns:
                 recommendation_data[column] = ""
 
-        # Prepare text for the content-based model.
-        recommendation_data = prepare_product_text(
-            recommendation_data
-        )
-
         selected_index = st.selectbox(
             "Select a product",
             options=list(range(len(recommendation_data))),
@@ -1584,8 +1642,12 @@ elif st.session_state.page == "results":
             type="primary",
         ):
             try:
+                # Prepare text only when the user requests recommendations.
+                recommendation_model_data = prepare_product_text(
+                    recommendation_data
+                )
                 results = recommend_products(
-                    recommendation_data,
+                    recommendation_model_data,
                     selected_index,
                     top_n=5,
                 )
